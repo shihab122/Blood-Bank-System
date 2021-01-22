@@ -270,6 +270,7 @@ public class UserService {
         Claims claims = Jwts.claims().setSubject(user.getUsername());
         claims.put("id", user.getId());
         claims.put("username", user.getUsername());
+        claims.put("userType", user.getType());
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -321,5 +322,16 @@ public class UserService {
             claims = null;
         }
         return claims;
+    }
+
+    public UserType getUserTypeFromUsername(String username) throws ExecutionFailureException {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (!optionalUser.isPresent()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "username", "Invalid Username", "User does not exist on database.")
+            );
+        }
+        return optionalUser.get().getType();
+
     }
 }
