@@ -23,4 +23,6 @@ public class BloodRequest implements Serializable {
     private List<User> donateBy;
 
     private LocalDateTime donateOn;
+
+    private List<Feedback> feedbackList;
 }

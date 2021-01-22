@@ -38,13 +38,18 @@ public class User implements Serializable {
 
     private String bloodGroup;
 
+    // Weight must be in kg
+    private double weight;
+
+    private String dateOfBirth;
+
     private String religion;
 
     private Address presentAddress;
 
-    private LocalDateTime createdAt;
-
     private LocalDateTime availableFrom;
+
+    private LocalDateTime createdAt;
 
     // Common attributes for all model class
     @Indexed
