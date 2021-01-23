@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,7 +42,7 @@ public class User implements Serializable {
     // Weight must be in kg
     private double weight;
 
-    private String dateOfBirth;
+    private LocalDate dateOfBirth;
 
     private String religion;
 

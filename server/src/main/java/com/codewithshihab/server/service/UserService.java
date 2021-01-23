@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -59,124 +60,15 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    private void validateUsername(String username) throws ExecutionFailureException {
-        if (username.isEmpty()) {
+    public User createAdminUser(User user, String accessToken) throws ExecutionFailureException {
+        String username = getUsernameFromAccessToken(accessToken);
+        UserType userType = getUserTypeFromUsername(username);
+        if (userType == null || !userType.equals(UserType.ADMIN)) {
             throw new ExecutionFailureException(
-                    new Error(400, "username", "Username is empty", "Username is required field")
+                    new Error(401, "userType", "Unauthorized", "You are not allowed for this operation.")
             );
         }
-        if (username.length() < 3 || username.length() > 50) {
-            throw new ExecutionFailureException(
-                    new Error(400, "username", "Username length is invalid", "Username can be more than 2 & less than 50 characters")
-            );
-        }
-        if (!username.matches("^[a-z1-9._@]+$")) {
-            throw new ExecutionFailureException(
-                    new Error(400, "username", "Username has invalid character", "Username can have only alphabets")
-            );
-        }
-    }
-
-    private void validatePassword(String password) throws ExecutionFailureException {
-        if (password == null || password.equals("")) {
-            throw new ExecutionFailureException(
-                    new Error(400, "password", "Invalid password", "Password is empty")
-            );
-        }
-        if (password.length() < 6) {
-            throw new ExecutionFailureException(
-                    new Error(400, "password", "Invalid password length", "Password is empty")
-            );
-        }
-    }
-
-    private void validateUser(User user) throws ExecutionFailureException {
-        validateUsername(Optional.ofNullable(user.getUsername()).orElse(""));
-        validatePassword(Optional.ofNullable(user.getPassword()).orElse(""));
-        validateAddress(user.getPresentAddress());
-
-        if (user.getName() == null
-                || (user.getName().getFirstName().isEmpty()
-                && user.getName().getMiddleName().isEmpty()
-                && user.getName().getLastName().isEmpty())
-        ) {
-            throw new ExecutionFailureException(
-                    new Error(400, "name", "Invalid Name", "Name must be 2 characters long.")
-            );
-        }
-        else if (user.getType() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "mobileNumber", "Invalid User Type", "User must have a valid user type.")
-            );
-        }
-        else if (user.getMobileNumber() == null || user.getMobileNumber().length() < 3) {
-            throw new ExecutionFailureException(
-                    new Error(400, "mobileNumber", "Invalid Mobile Number", "User must have valid mobile number.")
-            );
-        }
-        else if (user.getAlternateMobileNumber() == null || user.getAlternateMobileNumber().length() < 3) {
-            throw new ExecutionFailureException(
-                    new Error(400, "alternateMobileNumber", "Invalid Alternate Mobile Number", "User must have valid alternate mobile number.")
-            );
-        }
-        else if (user.getEmail() == null || !user.getEmail().matches("^[a-z1-9._@]+$")) {
-            throw new ExecutionFailureException(
-                    new Error(400, "email", "Invalid Email Address", "User must have valid email address.")
-            );
-        }
-        else if (user.getBloodGroup() == null || !user.getBloodGroup().matches("^(A|B|AB|O)[+-]$")) {
-            throw new ExecutionFailureException(
-                    new Error(400, "bloodGroup", "Invalid Blood Group", "User must have valid blood group.")
-            );
-        }
-        else if (user.getReligion() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "religion", "Invalid Religion", "User must have valid religion.")
-            );
-        }
-        else if (user.getDateOfBirth() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "dateOfBirth", "Invalid Date of Birth", "User must have valid date of birth.")
-            );
-        }
-        else if (user.getWeight() < 10) {
-            throw new ExecutionFailureException(
-                    new Error(400, "weight", "Invalid Weight", "User must have valid weight.")
-            );
-        }
-    }
-
-    public void validateAddress(Address address) throws ExecutionFailureException {
-        if (address == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "address", "Invalid Address", "User must have valid address.")
-            );
-        }
-        else if (address.getUnion() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "union", "Invalid Union", "User must have valid address.")
-            );
-        }
-        else if (address.getPostOffice() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "postOffice", "Invalid Post Office", "User must have valid address.")
-            );
-        }
-        else if (address.getPostCode() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "postCode", "Invalid Post Code", "User must have valid address.")
-            );
-        }
-        else if (address.getPoliceStation() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "policeStation", "Invalid Police Station", "User must have valid address.")
-            );
-        }
-        else if (address.getDistrict() == null) {
-            throw new ExecutionFailureException(
-                    new Error(400, "district", "Invalid District", "User must have valid address.")
-            );
-        }
+        return save(user);
     }
 
     public User save(User user) throws ExecutionFailureException {
@@ -224,6 +116,10 @@ public class UserService {
             throw new ExecutionFailureException(new Error(400, "username", "Invalid Username", "Username does not exist."));
         }
         return optionalUser.get();
+    }
+
+    public List<User> findAll() {
+        return userRepository.findAll();
     }
 
     public Page<User> findAll(Integer size, Integer offset) {
@@ -333,5 +229,129 @@ public class UserService {
         }
         return optionalUser.get().getType();
 
+    }
+
+    public void deleteByUsername(String username) {
+        userRepository.deleteByUsername(username);
+    }
+
+    private void validateUsername(String username) throws ExecutionFailureException {
+        if (username.isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "username", "Username is empty", "Username is required field")
+            );
+        }
+        if (username.length() < 3 || username.length() > 50) {
+            throw new ExecutionFailureException(
+                    new Error(400, "username", "Username length is invalid", "Username can be more than 2 & less than 50 characters")
+            );
+        }
+        if (!username.matches("^[a-z0-9._@]+$")) {
+            throw new ExecutionFailureException(
+                    new Error(400, "username", "Username has invalid character", "Username can have only alphabets")
+            );
+        }
+    }
+
+    private void validatePassword(String password) throws ExecutionFailureException {
+        if (password == null || password.equals("")) {
+            throw new ExecutionFailureException(
+                    new Error(400, "password", "Invalid password", "Password is empty")
+            );
+        }
+        if (password.length() < 6) {
+            throw new ExecutionFailureException(
+                    new Error(400, "password", "Invalid password length", "Password is empty")
+            );
+        }
+    }
+
+    private void validateUser(User user) throws ExecutionFailureException {
+        validateUsername(Optional.ofNullable(user.getUsername()).orElse(""));
+        validatePassword(Optional.ofNullable(user.getPassword()).orElse(""));
+        validateAddress(user.getPresentAddress());
+
+        if (user.getName() == null
+                || (user.getName().getFirstName().isEmpty()
+                && user.getName().getMiddleName().isEmpty()
+                && user.getName().getLastName().isEmpty())
+        ) {
+            throw new ExecutionFailureException(
+                    new Error(400, "name", "Invalid Name", "Name must be 2 characters long.")
+            );
+        }
+        else if (user.getType() == null) {
+            throw new ExecutionFailureException(
+                    new Error(400, "mobileNumber", "Invalid User Type", "User must have a valid user type.")
+            );
+        }
+        else if (user.getMobileNumber().isEmpty() || user.getMobileNumber().length() < 3) {
+            throw new ExecutionFailureException(
+                    new Error(400, "mobileNumber", "Invalid Mobile Number", "User must have valid mobile number.")
+            );
+        }
+        else if (user.getAlternateMobileNumber().isEmpty() || user.getAlternateMobileNumber().length() < 3) {
+            throw new ExecutionFailureException(
+                    new Error(400, "alternateMobileNumber", "Invalid Alternate Mobile Number", "User must have valid alternate mobile number.")
+            );
+        }
+        else if (user.getEmail().isEmpty() || !user.getEmail().matches("^[a-z1-9._@]+$")) {
+            throw new ExecutionFailureException(
+                    new Error(400, "email", "Invalid Email Address", "User must have valid email address.")
+            );
+        }
+        else if (user.getBloodGroup().isEmpty() || !user.getBloodGroup().matches("^(A|B|AB|O)[+-]$")) {
+            throw new ExecutionFailureException(
+                    new Error(400, "bloodGroup", "Invalid Blood Group", "User must have valid blood group.")
+            );
+        }
+        else if (user.getReligion().isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "religion", "Invalid Religion", "User must have valid religion.")
+            );
+        }
+        else if (user.getDateOfBirth() == null) {
+            throw new ExecutionFailureException(
+                    new Error(400, "dateOfBirth", "Invalid Date of Birth", "User must have valid date of birth.")
+            );
+        }
+        else if (user.getWeight() < 10) {
+            throw new ExecutionFailureException(
+                    new Error(400, "weight", "Invalid Weight", "User must have valid weight.")
+            );
+        }
+    }
+
+    public void validateAddress(Address address) throws ExecutionFailureException {
+        if (address == null) {
+            throw new ExecutionFailureException(
+                    new Error(400, "address", "Invalid Address", "User must have valid address.")
+            );
+        }
+        else if (address.getUnion().isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "union", "Invalid Union", "User must have valid address.")
+            );
+        }
+        else if (address.getPostOffice().isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "postOffice", "Invalid Post Office", "User must have valid address.")
+            );
+        }
+        else if (address.getPostCode().isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "postCode", "Invalid Post Code", "User must have valid address.")
+            );
+        }
+        else if (address.getPoliceStation().isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "policeStation", "Invalid Police Station", "User must have valid address.")
+            );
+        }
+        else if (address.getDistrict().isEmpty()) {
+            throw new ExecutionFailureException(
+                    new Error(400, "district", "Invalid District", "User must have valid address.")
+            );
+        }
     }
 }
